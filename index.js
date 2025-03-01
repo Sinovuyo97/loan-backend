@@ -3,9 +3,15 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const loanRoutes = require("./routes/loanRoutes");
+const cors = require("cors");
 
 dotenv.config();
 const app = express();
+app.use(cors({
+  origin: "*", // Allow all origins (you can restrict this later)
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 // 🔹 Use Routes
