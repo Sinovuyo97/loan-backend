@@ -22,6 +22,7 @@
     "mongoose": "^8.11.0"
   },
   "devDependencies": {
-    "@flydotio/dockerfile": "^0.7.8"
+    "@flydotio/dockerfile": "^0.7.8",
+    "http-proxy-middleware": "^3.0.3"
   }
 }
