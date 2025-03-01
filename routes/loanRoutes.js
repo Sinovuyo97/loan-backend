@@ -33,7 +33,7 @@ router.post(
 
       // Send SMS notification
       const message = `Your loan application for ${amount} has been successfully submitted.`;
-      const recipientPhone = "+27766925807"; // Replace with the actual recipient's phone number
+      const recipientPhone = "+27655853178"; // Replace with the actual recipient's phone number
 
       sendSMS(recipientPhone, message);
     } catch (err) {
@@ -102,7 +102,7 @@ router.post("/:loanId/repay", authMiddleware, async (req, res) => {
 
       // Send SMS notification
       const message = `Congratulations! Your loan with ID ${loan.id} has been fully paid.`;
-      const recipientPhone = "+27766925807"; // Replace with the actual recipient's phone number
+      const recipientPhone = "+27655853178"; // Replace with the actual recipient's phone number
 
       sendSMS(recipientPhone, message);
     }
