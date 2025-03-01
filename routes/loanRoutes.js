@@ -2,6 +2,7 @@ const express = require("express");
 const { check, validationResult } = require("express-validator");
 const Loan = require("../models/Loan");
 const authMiddleware = require("../middleware/authMiddleware");
+const sendSMS = require("../utils/smsService");
 
 const router = express.Router();
 
@@ -15,7 +16,8 @@ router.post(
   ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
     const { amount, duration } = req.body;
 
@@ -28,6 +30,12 @@ router.post(
 
       await loan.save();
       res.status(201).json(loan);
+
+      // Send SMS notification
+      const message = `Your loan application for ${amount} has been successfully submitted.`;
+      const recipientPhone = "+27766925807"; // Replace with the actual recipient's phone number
+
+      sendSMS(recipientPhone, message);
     } catch (err) {
       res.status(500).send("Server Error");
     }
@@ -47,7 +55,8 @@ router.get("/my-loans", authMiddleware, async (req, res) => {
 // 🔹 Admin: Get all loans
 router.get("/all", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ msg: "Access denied" });
+    if (req.user.role !== "admin")
+      return res.status(403).json({ msg: "Access denied" });
 
     const loans = await Loan.find().populate("user", "fullName email");
     res.json(loans);
@@ -59,7 +68,8 @@ router.get("/all", authMiddleware, async (req, res) => {
 // 🔹 Admin: Approve/Reject a loan
 router.put("/:loanId/status", authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== "admin") return res.status(403).json({ msg: "Access denied" });
+    if (req.user.role !== "admin")
+      return res.status(403).json({ msg: "Access denied" });
 
     const loan = await Loan.findById(req.params.loanId);
     if (!loan) return res.status(404).json({ msg: "Loan not found" });
@@ -74,43 +84,53 @@ router.put("/:loanId/status", authMiddleware, async (req, res) => {
 });
 // 🔹 Make a repayment
 router.post("/:loanId/repay", authMiddleware, async (req, res) => {
-    const { amountPaid } = req.body;
-  
-    try {
-      const loan = await Loan.findById(req.params.loanId);
-      if (!loan) return res.status(404).json({ msg: "Loan not found" });
-      if (loan.user.toString() !== req.user.userId) return res.status(403).json({ msg: "Access denied" });
-  
-      // Add repayment record
-      loan.repayments.push({ amountPaid });
+  const { amountPaid } = req.body;
+
+  try {
+    const loan = await Loan.findById(req.params.loanId);
+    if (!loan) return res.status(404).json({ msg: "Loan not found" });
+    if (loan.user.toString() !== req.user.userId)
+      return res.status(403).json({ msg: "Access denied" });
+
+    // Add repayment record
+    loan.repayments.push({ amountPaid });
+    await loan.save();
+
+    if (loan.getOutstandingBalance() <= 0) {
+      loan.status = "paid";
       await loan.save();
-  
-      // Check if fully paid
-      if (loan.getOutstandingBalance() <= 0) {
-        loan.status = "paid";
-        await loan.save();
-      }
-  
-      res.json({ msg: "Repayment successful", remainingBalance: loan.getOutstandingBalance() });
-    } catch (err) {
-      res.status(500).send("Server Error");
+
+      // Send SMS notification
+      const message = `Congratulations! Your loan with ID ${loan.id} has been fully paid.`;
+      const recipientPhone = "+27766925807"; // Replace with the actual recipient's phone number
+
+      sendSMS(recipientPhone, message);
     }
-  });
-  
-  // 🔹 Get loan details with repayment history
-  router.get("/:loanId", authMiddleware, async (req, res) => {
-    try {
-      const loan = await Loan.findById(req.params.loanId);
-      if (!loan) return res.status(404).json({ msg: "Loan not found" });
-      if (loan.user.toString() !== req.user.userId) return res.status(403).json({ msg: "Access denied" });
-  
-      res.json({
-        loan,
-        outstandingBalance: loan.getOutstandingBalance(),
-      });
-    } catch (err) {
-      res.status(500).send("Server Error");
-    }
-  });
-  
+
+    res.json({
+      msg: "Repayment successful",
+      remainingBalance: loan.getOutstandingBalance(),
+    });
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// 🔹 Get loan details with repayment history
+router.get("/:loanId", authMiddleware, async (req, res) => {
+  try {
+    const loan = await Loan.findById(req.params.loanId);
+    if (!loan) return res.status(404).json({ msg: "Loan not found" });
+    if (loan.user.toString() !== req.user.userId)
+      return res.status(403).json({ msg: "Access denied" });
+
+    res.json({
+      loan,
+      outstandingBalance: loan.getOutstandingBalance(),
+    });
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;
