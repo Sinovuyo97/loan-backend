@@ -7,6 +7,7 @@ const sendSMS = async (phone, message) => {
   try {
     await client.messages.create({
       body: message,
+      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || undefined,
       from: process.env.TWILIO_PHONE,
       to: phone,
     });
