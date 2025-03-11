@@ -3,15 +3,24 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const loanRoutes = require("./routes/loanRoutes");
-const cors = require("cors");
 
 dotenv.config();
 const app = express();
-app.use(cors({
-  origin: "*", // Allow all origins (you can restrict this later)
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+
+// 🔹 Manual CORS Middleware
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // Allow all origins (Change this to specific domains for security)
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Handle preflight (OPTIONS) requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204); // No Content response for preflight
+  }
+
+  next();
+});
+
 app.use(express.json());
 
 // 🔹 Use Routes
